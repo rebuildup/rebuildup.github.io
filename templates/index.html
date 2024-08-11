@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <title>忙しい人のための作文エディター</title>
+</head>
+
+<body>
+    <div>
+        <a><img src="static/setting.png" class="setting-icon" width="40" height="40" onclick="toggleSettingsPopup()"
+                style="float:right;"></a>
+
+        <h1 style="text-align:center">忙しい人のための作文エディター</h1>
+    </div>
+    <div id="popup-background" onclick="toggleSettingsPopup()"></div>
+    <div id="settings-popup">
+        <span class="close-btn" onclick="toggleSettingsPopup()">×</span>
+        <h2>設定</h2>
+        <p>設定したいことなんて無い 設定とは設定であり設定するための設定なのである</p>
+        <p>Setting is setting and setting to setting</p>
+        <!-- 設定内容をここに追加 -->
+        <select id="theme" style="margin-left: auto; margin-right: auto;">
+            <option value="default">デフォルト</option>
+            <option value="light">ライトテーマ</option>
+            <option value="dark">ダークテーマ</option>
+        </select>
+        <div padding=10px></div>
+        <br>
+        <button>謎のボタン</button>
+    </div>
+
+
+    <div style="padding-left:10%; padding-right:10%;">
+
+        <button onclick="copyButton('copytxt')" style="font-size:large; float:right;">
+            <div id="copy-icon"><img src="static/copy.png" alt="" width="20" height="20" class="copy-icon">COPY</div>
+        </button>
+
+        <div id="popup">コピーしました！</div>
+        <div>
+            文字数: <span id="charCount">0</span>
+            行数: <span id="lineCount">0</span>
+        </div>
+        <div class="txbox" style="outline:none;" id="textcontent">
+            <p contenteditable="true" id="copytxt" style="outline: none; border: none;">
+                テキストを入力する
+            </p>
+        </div>
+
+        <div id="tableContainer"></div>
+        <br clear="all">
+    </div>
+
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+
+</body>
+
+</html>
