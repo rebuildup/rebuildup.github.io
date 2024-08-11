@@ -1,0 +1,286 @@
+/* 使わないのか？...
+div{
+    outline: none;
+    border:none;
+}
+*/
+/*
+.input-cell {
+  outline: none;
+  border: none; 
+  text-align: center;
+  
+}*/
+
+body {
+  background-image: url("/static/paper.png");
+}
+
+
+
+
+
+
+
+/*カラー変更系*/
+
+/* デフォルトテーマ */
+body.default {
+  background-color: rgb(111, 136, 207);
+  color: rgb(255, 255, 255);
+}
+
+/* ライトテーマ */
+body.light {
+  background-color: white;
+  color: black;
+}
+
+/* ダークテーマ */
+body.dark {
+  background-color: black;
+  color: white;
+}
+
+
+
+
+
+button {
+  border-radius: 20px;
+  outline: none;
+  box-shadow: none;
+  border: 2px solid;
+}
+
+/* デフォルトテーマ */
+button.default {
+  background: transparent;
+  color: rgb(255, 255, 255);
+  /*border-color: rgb(255, 255, 255);*/
+}
+
+/* ライトテーマ */
+button.light {
+  background: transparent;
+  color: black;
+  /*border-color: black;*/
+}
+
+/* ダークテーマ */
+button.dark {
+  background: transparent;
+  color: white;
+  /*border-color: white;*/
+}
+
+
+
+.highlight {
+  color: red;
+}
+
+
+
+
+.copy-icon {
+  filter: brightness(0) invert(1);
+  vertical-align: middle;
+}
+
+#popup {
+  visibility: hidden;
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  padding: 10px;
+  border-radius: 10px;
+  z-index: 1000;
+}
+
+
+
+
+
+
+
+
+.setting-icon {
+  filter: brightness(0) invert(1);
+  cursor: pointer;
+}
+
+#settings-popup {
+  display: none;
+  /* 初期状態では非表示 */
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 20px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  border-radius: 20px;
+}
+
+#settings-popup .close-btn {
+  cursor: pointer;
+  float: right;
+  font-size: 20px;
+}
+
+#popup-background {
+  display: none;
+  /* 初期状態では非表示 */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.3);
+  /* 半透明の黒 */
+  z-index: 1000;
+}
+
+
+
+
+
+
+
+
+.sakubun {
+  width: 100%;
+  font-family: "ヒラギノ明朝 ProN W3", "HiraMinProN-W3", "HG明朝E", "ＭＳ Ｐ明朝", "MS PMincho", "MS 明朝", serif;
+  font-size: 28px;
+  color: #333;
+
+  border: 1px solid rgba(0, 0, 0, .2);
+  position: relative;
+  letter-spacing: .5em;
+  line-height: 2em;
+  padding: 5px;
+  float: right;
+
+}
+
+.sakubun::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-image:
+    linear-gradient(to bottom, rgba(0, 0, 0, .2) 1px, transparent 0),
+    linear-gradient(to left, rgba(0, 0, 0, .2) 1px, transparent 0),
+    linear-gradient(to bottom, transparent 11px, rgba(0, 0, 0, .2) 12px, transparent 0);
+
+  background-size: 1.5em 2em;
+
+  background-position: top left;
+  background-origin: padding-box;
+  margin-left: -5px;
+  z-index: -1;
+}
+
+/*
+.sakubun::after {
+  content: '';
+  display: block;
+  clear: both;
+}
+*/
+
+.sakubun p {
+  margin: 0;
+  margin-right: 0;
+  margin-top: .3em;
+}
+
+/*
+.sakubun ruby {
+  ruby-align: left;
+}
+
+.sakubun ruby>rt {
+  font-size: 10px;
+  letter-spacing: 0;
+  text-align: justify;
+  line-height: 1em;
+  transform: translateX(.40em) translateY(-1.1em);
+  margin-bottom: .1000em;
+}
+*/
+
+td {
+  width: 20px;
+  height: 20px;
+  font-family: "ヒラギノ明朝 ProN W3", "HiraMinProN-W3", "HG明朝E", "ＭＳ Ｐ明朝", "MS PMincho", "MS 明朝", serif;
+  font-size: 28px;
+  color: #333;
+}
+
+
+input:focus,
+textarea:focus,
+div:focus {
+  outline: none;
+}
+
+.no-focus {
+  outline: none;
+}
+
+.tooltip {
+  display: inline-block;
+  position: relative;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 140px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  border-radius: 5px;
+  padding: 5px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -70px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  opacity: 1;
+}
+
+
+table {
+  table-layout: fixed;
+  word-wrap: break-word;
+}
+
+.txbox {
+  margin-left: 0;
+  margin-top: 0;
+
+  font-family: "ヒラギノ明朝 ProN W3", "HiraMinProN-W3", "HG明朝E", "ＭＳ Ｐ明朝", "MS PMincho", "MS 明朝", serif;
+  font-size: 28px;
+  color: #333;
+  letter-spacing: 11px;
+  line-height: 39px;
+}
+
+.txbox p {
+  margin: 0;
+  margin-right: 0;
+  margin-left: 6px;
+  margin-top: 1px;
+
+}
