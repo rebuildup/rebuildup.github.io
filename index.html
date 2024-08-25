@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>忙しい人のための作文エディター</title>
+    <meta name="description" content="忙しい人のための作文エディターです チャットGPTを使って簡単に作文を作成できます">
+    <meta name="keywords" content="キーワード1, キーワード2, キーワード3">
+    <meta name="author" content="あなたの名前">
+
+    <meta property="og:title" content="忙しい人のための作文エディター">
+    <meta property="og:description" content="あなたのウェブサイトの説明文">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://あなたのウェブサイトのURL">
+    <meta property="og:image" content="https://あなたのウェブサイトの画像URL">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@あなたのTwitterアカウント">
+    <meta name="twitter:creator" content="@あなたのTwitterアカウント">
+    <meta name="twitter:title" content="忙しい人のための作文エディター">
+    <meta name="twitter:description" content="あなたのウェブサイトの説明文">
+    <meta name="twitter:image" content="https://あなたのウェブサイトの画像URL">
+
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='rgb(79, 139, 194)' /></svg>">
+
+</head>
+
+<body id="BG"
+    style="display: flex;justify-content: center;align-items: center;height: 100vh;overflow: hidden;font-family: 'Noto Sans JP', sans-serif;">
+    <style>
+        /*読み込み時アニメーション*/
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgb(79, 139, 194);
+            /* 水色 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            /* 他の要素の上に表示 */
+        }
+
+        .animated-text::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background-color: white;
+            width: 0%;
+            animation: fill 2s forwards;
+        }
+
+        @keyframes fill {
+            100% {
+                width: 100%;
+            }
+        }
+
+        .loading-screen.loaded {
+            animation: fadeOut 1s forwards;
+        }
+
+        @keyframes fadeOut {
+            100% {
+                opacity: 0;
+            }
+        }
+
+        /*背景#f5f5f5*/
+        #BG {
+            background-color: #f5f5f5;
+        }
+
+        /*ヘッダー*/
+        #header {
+            display: flex;
+            position: absolute;
+            top: -8vh;
+            width: 100vw;
+            height: 8vh;
+            background-color: #4f8bc2;
+            z-index: 5;
+            box-shadow: 0px 0px 40px 0px rgba(79, 139, 194, 0.2);
+            align-items: center;
+            animation: slideDown 0.7s ease forwards;
+        }
+
+        @keyframes slideDown {
+            from {
+                top: -8vh;
+            }
+
+            to {
+                top: 0;
+            }
+        }
+
+        /*編集オブジェクト*/
+        #draggable {
+            position: fixed;
+            transform-origin: left top;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .txtpage {
+            width: 874px;
+            height: 1240px;
+            background-color: #FFFFFF;
+            border-radius: 40px;
+            margin: 40px;
+            box-shadow: 0px 0px 40px 0px rgba(79, 139, 194, 0.2);
+            justify-content: center;
+            align-items: center;
+            display: flex;
+        }
+
+        .editabletxt {
+            font-family: 'HG明朝B', 'BIZ UD明朝 Medium', monospace;
+            width: 100%;
+            height: 94%;
+            margin: 40px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-size: 24px;
+            outline: none;
+            letter-spacing: 15px;
+            line-height: 2.4;
+            background: repeating-linear-gradient(to bottom,
+                    transparent,
+                    transparent calc(2.4em - 1px),
+                    rgba(0, 0, 0, 0.5) calc(2.4em - 1px),
+                    rgba(0, 0, 0, 0.5) 2.4em);
+        }
+
+        /*文字数列数カウンター*/
+        #counterpanel {
+
+            background-color: #4f8bc2;
+            position: absolute;
+            animation: slideInCnt 0.7s ease forwards;
+            top: 12vh;
+            box-shadow: 0px 0px 40px 0px rgba(10, 10, 10, 0.2);
+            border-radius: 0 1em 1em 0;
+            left: -5vw;
+        }
+
+        @keyframes slideInCnt {
+            from {
+                left: -5vw;
+            }
+
+            to {
+                left: 0;
+            }
+        }
+
+        /*ツールパネル*/
+        #toolpanel {
+            width: 5vw;
+            height: 40vh;
+            position: absolute;
+            border-radius: 10em;
+            left: -5vw;
+            z-index: 4;
+            background-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0px 0px 40px 0px rgba(79, 139, 194, 0.2);
+            text-align: center;
+            animation: slideInLeft 0.7s ease forwards;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                left: -5vw;
+            }
+
+            to {
+                left: 2vw;
+            }
+        }
+
+        .toolbutton {
+            border-radius: 50%;
+            width: 5em;
+            height: 5em;
+            color: rgba(255, 255, 255, 0.2);
+            border: none;
+            box-shadow: 0px 0px 20px 0px rgba(79, 139, 194, 0.1);
+        }
+
+        /*レスポンスパネル*/
+        #responsepanel {
+            width: 20vw;
+            height: 54vh;
+            position: absolute;
+            border-radius: 3em;
+            background-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0px 0px 40px 0px rgba(79, 139, 194, 0.2);
+            right: 2vw;
+            transform-origin: left top;
+            z-index: 4;
+            overflow: auto;
+            animation: slideInRight 0.7s ease forwards;
+        }
+
+        @keyframes slideInRight {
+            from {
+                right: -5vw;
+            }
+
+            to {
+                right: 2vw;
+            }
+        }
+
+        /*チャットパネル*/
+        #chatpanel {
+            width: 50vw;
+            position: absolute;
+            bottom: -8vh;
+            z-index: 5;
+            background-color: #4f8bc2;
+            box-shadow: 0px 0px 40px 0px rgba(79, 139, 194, 0.2);
+            border-radius: 2em 2em 0 0;
+            padding: 1em;
+            animation: slideUp 0.7s ease forwards;
+        }
+
+        @keyframes slideUp {
+            from {
+                bottom: -8vh;
+            }
+
+            to {
+                bottom: 0;
+            }
+        }
+
+        .chat-input-container {
+            display: flex;
+            align-items: center;
+            background-color: #FFF;
+            border-radius: 2em;
+            padding: 0.5em;
+            width: calc(100% - 2em);
+            /* 左右の余白を考慮 */
+            margin: 0 auto;
+            /* 中央に配置 */
+        }
+
+        #sendtxt {
+            flex-grow: 1;
+            padding: 0.5em;
+            border: none;
+            outline: none;
+            border-radius: 2em;
+            background-color: #FFF;
+            resize: none;
+            overflow: auto;
+            max-height: 150px;
+        }
+
+        #sendbutton {
+            margin-left: 1em;
+            border-radius: 50%;
+            width: 3em;
+            height: 3em;
+            background-color: #ffffff;
+            border: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+        }
+
+        /*その他*/
+        ::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+    <!--読み込み画面-->
+    <div class="loading-screen">
+        <h1 class="animated-text" style="color:#FFF;font-size:3vw;letter-spacing: 1vw;">忙しい人のための作文エディター</h1>
+    </div>
+    <!--ヘッダー-->
+    <header id="header">
+        <h1 style="font-size:2em;color:#FFF;padding-left:1.5em;white-space: nowrap;">忙しい人のための作文エディター</h1>
+    </header>
+
+    <!--編集オブジェクト-->
+    <div id="container">
+        <div id="draggable">
+            <div class="txtpage" id="txtpage-1">
+                <div class="editabletxt" contenteditable="true" id="page-1"></div>
+            </div>
+        </div>
+    </div>
+    <!--文字数行数カウンター-->
+    <div id="counterpanel">
+        <div style="background-color:#FFF;margin:1em;border-radius:1em">
+            <div style="margin:1em;">
+                文字数 <span id="charcnt">0</span> 行数 <span id="rowcnt">0</span>
+            </div>
+        </div>
+
+    </div>
+    <!--ツールパネル-->
+    <div id="toolpanel">
+        <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);">
+            <button class="toolbutton"></button>
+            <button class="toolbutton"></button>
+            <button class="toolbutton"></button>
+            <button class="toolbutton"></button>
+            <button class="toolbutton"></button>
+        </div>
+
+    </div>
+
+    <!--レスポンスパネルー-->
+    <div id="responsepanel">
+        <div style="margin:2em;white-space: pre-wrap;" id="responsetxt"></div>
+    </div>
+
+    <!--チャットパネル-->
+    <div id="chatpanel">
+        <div class="chat-input-container">
+            <div contenteditable="true" id="sendtxt"></div>
+            <button id="sendbutton" onclick="sendbutton()"><svg version="1.1" id="_x32_"
+                    xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+                    viewBox="0 0 512 512" style="width: 38px; height: 38px; opacity: 1;left:0; " xml:space="preserve">
+                    <style type="text/css">
+                        .st0 {
+                            fill: #4B4B4B;
+                        }
+                    </style>
+                    <g>
+                        <polygon class="st0" points="121.71,463.73 211.257,394.524 121.71,333.638 	"
+                            style="fill: rgb(79, 139, 194);"></polygon>
+                        <polygon class="st0"
+                            points="0,216.127 122.938,305.26 465.837,86.043 152.628,326.791 335.73,459.532 512,48.27 	"
+                            style="fill: rgb(79, 139, 194);"></polygon>
+                    </g>
+                </svg></button>
+        </div>
+    </div>
+
+
+
+    <script>
+        /*オブジェクトドラッグ 拡大縮小 読み込み時アニメーション*/
+        window.onload = function () {
+            document.querySelector('.loading-screen').classList.add('loaded');
+            addevent("page-1");
+            setTimeout(() => {
+                document.querySelector('.loading-screen').style.display = "none";
+            }, 1000);
+        };
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('container');
+            window.addEventListener('resize', () => {
+                container.style.width = window.innerWidth + 'px';
+                container.style.height = window.innerHeight + 'px';
+            });
+        });
+        const draggable = document.getElementById('draggable');
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        const draggableWidth = draggable.offsetWidth;
+        const draggableHeight = draggable.offsetHeight;
+        const leftPos = (windowWidth - draggableWidth) / 2;
+        const topPos = (windowHeight - draggableHeight) / 2;
+
+        let scale = windowWidth / 1800;
+        draggable.style.left = (leftPos - (160 * scale)) + 'px';
+        draggable.style.top = (topPos + (320 * scale)) + 'px';
+        draggable.style.transform = `scale(${scale})`;
+
+        let isDragging = false;
+        let offsetX, offsetY;
+        let isSpacePressed = false;
+
+        draggable.addEventListener('mousedown', (event) => {
+            if (event.button === 1 || isSpacePressed) {
+                isDragging = true;
+                offsetX = event.clientX - draggable.getBoundingClientRect().left;
+                offsetY = event.clientY - draggable.getBoundingClientRect().top;
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                isSpacePressed = true;
+            }
+        });
+
+        document.addEventListener('keyup', (event) => {
+            if (event.code === 'Space') {
+                isSpacePressed = false;
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            draggable.style.cursor = 'text';
+        });
+
+        document.addEventListener('mousemove', (event) => {
+            if (isDragging) {
+                draggable.style.cursor = 'grabbing';
+                draggable.style.left = event.clientX - offsetX + 'px';
+                draggable.style.top = event.clientY - offsetY + 'px';
+            }
+        });
+
+        window.addEventListener('wheel', (event) => {
+            if (event.ctrlKey) {
+                event.preventDefault();
+
+                // スケーリングの処理
+                scale += event.deltaY < 0 ? 0.1 : -0.1;
+                scale = Math.max(scale, 0.1);
+                scale = Math.min(scale, 30);
+
+                draggable.style.transform = `scale(${scale})`;
+            } else {
+                // 縦方向の移動の処理
+                event.preventDefault(); // スクロールイベントのデフォルト動作を防ぐ
+
+                // 現在のtop位置を取得し、deltaYで増減
+                let currentTop = parseInt(draggable.style.top, 10) || 0;
+                draggable.style.top = (currentTop - event.deltaY) + 'px';
+            }
+        }, { passive: false });
+
+
+
+        /*チャット・レスポンス*/
+        function sendbutton() {
+            responsedisplay(document.getElementById("sendtxt").innerHTML);
+            document.getElementById("sendtxt").innerHTML = "";
+        }
+        function chatsend(chattxt) {
+            return chattxt;
+        }
+        function responsedisplay(text) {
+            document.getElementById("responsetxt").innerHTML = text;
+        }
+        document.getElementById('sendtxt').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                if (event.shiftKey) {
+                    // Shiftキーが押されている場合: 改行
+                    const selection = window.getSelection();
+                    const range = selection.getRangeAt(0);
+                    const br = document.createElement("br");
+                    range.deleteContents();
+                    range.insertNode
+                        (br);
+                    range.collapse(false);
+                } else {
+                    // Shiftキーが押されていない場合: 送信処理など
+                    event.preventDefault();
+                    sendbutton();
+                }
+            }
+        });
+        document.getElementById('sendbutton').addEventListener('mouseover', () => {
+            document.getElementById('sendbutton').style.backgroundColor = "#f0f0f0";
+        });
+
+        document.getElementById('sendbutton').addEventListener('mouseout', () => {
+            document.getElementById('sendbutton').style.backgroundColor = "initial";
+        });
+
+        /*編集オブジェクト*/
+        let charCount = 0;
+        let rowCount = 1;
+        let pageCount = 1;
+        function charcnt(text) {
+            text = text.replace(/\r\n|\r|\n/g, '');
+            return text.length;
+        }
+        function rowcnt(text) {
+            const lines = text.split("\n");
+            let linecount = 0;
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i];
+                if (line.length == 0) {
+                    linecount++;
+                } else {
+                    linecount += Math.ceil(line.length / 20);
+                }
+            }
+            return linecount;
+        }
+        function counterdisplay(char, row) {
+            document.getElementById("charcnt").innerText = char;
+            document.getElementById("rowcnt").innerText = row;
+        }
+        function updatepagecount() {
+            let counttmp = 0;
+            for (let i = 0; i < rowCount; i++) {
+                if ((i % 20) == 0) {
+                    counttmp++;
+                }
+            }
+            pageCount = counttmp;
+        }
+        let isComposing = false;
+        let inputBuffer = ''; // 入力バッファ
+
+        function addevent(id) {
+            document.getElementById(id).addEventListener('input', () => {
+                setTimeout(() => {
+                    sourcetxt = ConvertText();
+                    charCount = charcnt(sourcetxt);
+                    rowCount = rowcnt(sourcetxt);
+                    counterdisplay(charCount, rowCount);
+                }, "100");
+
+            });
+            document.getElementById(id).addEventListener('compositionstart', () => {
+
+            });
+            document.getElementById(id).addEventListener('compositionupdate', () => {
+            });
+            document.getElementById(id).addEventListener('compositionend', () => {
+                setTimeout(() => {
+                    sourcetxt = ConvertText();
+                    charCount = charcnt(sourcetxt);
+                    rowCount = rowcnt(sourcetxt);
+                    counterdisplay(charCount, rowCount);
+                    let pageCountsave = pageCount;
+                    updatepagecount();
+                    if (pageCountsave != pageCount) {
+                        Pageupdate();
+                    }
+                    const pagetxt = pagesplit(sourcetxt);
+                    splitdisplay(pagetxt);
+                }, "100");
+            });
+            document.getElementById(id).addEventListener('paste', () => {
+                setTimeout(() => {
+                    sourcetxt = ConvertText();
+                    charCount = charcnt(sourcetxt);
+                    rowCount = rowcnt(sourcetxt);
+                    counterdisplay(charCount, rowCount);
+                    let pageCountsave = pageCount;
+                    updatepagecount();
+                    if (pageCountsave != pageCount) {
+                        Pageupdate();
+                    }
+                    const pagetxt = pagesplit(sourcetxt);
+                    splitdisplay(pagetxt);
+                }, "100");
+            });
+
+            let idtxt = id;
+            idtxt = idtxt.replace(/page-/g, '');
+            idtxt = Number(idtxt);
+            document.getElementById(id).addEventListener('keydown', () => {
+                switch (event.key) {
+                    case 'ArrowUp':
+                        if (CaretOnOne) {
+                            event.preventDefault();
+                            if (idtxt > 1) {
+                                element = document.getElementById("page-" + (idtxt - 1));
+                                element.focus();
+                                const range = document.createRange();
+                                range.selectNodeContents(element);
+                                range.collapse(false);
+                                const selection = window.getSelection();
+                                selection.removeAllRanges();
+                                selection.addRange(range);
+                            }
+                        }
+                        break;
+                    case 'ArrowDown':
+                        if (CaretOnTwenty) {
+                            event.preventDefault();
+                            if (idtxt < pageCount) {
+                                element = document.getElementById("page-" + (idtxt + 1));
+                                element.focus();
+                            }
+                        }
+                        break;
+                    case 'ArrowLeft':
+                        if (CaretOnOneFirst) {
+                            event.preventDefault();
+                            if (idtxt > 1) {
+                                element = document.getElementById("page-" + (idtxt - 1));
+                                element.focus();
+                                const range = document.createRange();
+                                range.selectNodeContents(element);
+                                range.collapse(false);
+                                const selection = window.getSelection();
+                                selection.removeAllRanges();
+                                selection.addRange(range);
+                            }
+                        }
+                        break;
+                    case 'ArrowRight':
+                        if (CaretOnTwentyLast) {
+                            event.preventDefault();
+                            if (idtxt < pageCount) {
+                                element = document.getElementById("page-" + (idtxt + 1));
+                                element.focus();
+                            }
+                        }
+                        break;
+                    case 'Enter':
+                        if (CaretOnTwenty) {
+                            if (idtxt < pageCount) {
+                                event.preventDefault();
+                                setTimeout(() => {
+                                    if (idtxt < pageCount) {
+                                        element = document.getElementById("page-" + (idtxt + 1));
+                                        element.focus();
+                                    }
+
+                                }, "100");
+
+                            } else {
+                                setTimeout(() => {
+                                    if (idtxt < pageCount) {
+                                        element = document.getElementById("page-" + (idtxt + 1));
+                                        element.focus();
+                                    }
+
+                                }, "100");
+                            }
+                        }
+                        break;
+                    case 'Backspace':
+                        if (CaretOnOneFirst) {
+                            //event.preventDefault();
+                        }
+                        break;
+                    default:
+                        // 他のキーが押されたときの処理（必要に応じて）
+                        break;
+                }
+
+            });
+        }
+        function pagesplit(text) {
+            let cnt = 0;
+            let linecount = 0;
+            let pagetxt = "";
+            const texts = [];
+            for (let i = 0; i < text.length; i++) {
+                pagetxt += text[i];
+                if (text[i] == "\n" || cnt >= 19) {
+                    linecount++;
+                    cnt = 0;
+                    if (linecount >= 20) {
+                        texts.push(pagetxt);
+                        pagetxt = "";
+                        linecount = 0;
+                    }
+                } else {
+                    cnt++;
+                }
+            }
+            if (pagetxt.length > 0) {
+                texts.push(pagetxt);
+            }
+            //console.log(texts);
+            return texts;
+        }
+        function splitdisplay(texts) {
+            let html = "";
+            let htmls = [];
+            for (let i = 0; i < texts.length; i++) {
+                const lines = texts[i].split("\n");
+                if (lines[0] == "") {
+                    html += "<br>";
+                } else {
+                    html += lines[0];
+                }
+                for (let j = 1; j < lines.length; j++) {
+                    if (lines[j] == "") {
+                        html += "<div>" + "<br>" + "</div>";
+                    } else {
+                        html += "<div>" + lines[j] + "</div>";
+                    }
+                }
+                const element = document.getElementById("page-" + (i + 1));
+                if (element) {
+                    element.innerHTML = html;
+                } else {
+                    console.error("Element with ID page-" + (i + 1) + " not found.");
+                }
+                html = "";
+            }
+            document.getElementById("page-" + (texts.length)).focus();
+            const range = document.createRange();
+            range.selectNodeContents(document.getElementById("page-" + (texts.length)));
+            range.collapse(false);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+
+        function ConvertText() {
+            let html = document.getElementById("page-1").innerHTML;
+            //console.log(pageCount);
+            if (pageCount > 1) {
+                for (let i = 1; i < pageCount; i++) {
+                    //console.log("page-" + i);
+                    html += document.getElementById("page-" + (i + 1)).innerHTML;
+                }
+            }
+            let text = html.replace(/<div>/g, '<hoge>');
+            text = text.replace(/<\/div>/g, '');
+            text = text.replace(/<br>/g, '');
+            text = text.replace(/<hoge>/g, '\n');
+
+            return text;
+        }
+        function Pageupdate() {
+            if (pageCount == 1) {
+                for (let i = 2; i <= 5; i++) {
+                    removePage(i);
+                }
+            } else {
+                for (let i = 2; i <= pageCount + 1; i++) {
+
+                    removePage(i);
+                }
+                for (let i = 2; i <= pageCount; i++) {
+                    createPage(i);
+                }
+            }
+        }
+        function createPage(pageNum) {
+            let Pagecontainer = document.createElement('div');
+            Pagecontainer.classList.add('txtpage');
+            Pagecontainer.id = "txtpage-" + pageNum;
+            document.getElementById('draggable').appendChild(Pagecontainer);
+            let newPage = document.createElement('div');
+            newPage.classList.add('editabletxt');
+            newPage.contentEditable = true;
+            newPage.id = "page-" + pageNum;
+            document.getElementById(Pagecontainer.id).appendChild(newPage);
+            addevent(newPage.id);
+        }
+
+        function removePage(pageNum) {
+            const page = document.getElementById("txtpage-" + pageNum);
+            if (page) {
+                page.remove();
+            } else {
+                //page.error("要素が見つかりません: " + "txtpage-" + pageNum);
+            }
+        }
+        function CaretPos(element) {
+            let caretOffset = 0;
+            const doc = element.ownerDocument || element.document;
+            const win = doc.defaultView || doc.parentWindow;
+            const sel = win.getSelection();
+
+            if (sel.rangeCount > 0) {
+                const range = sel.getRangeAt(0);
+                const preCaretRange = range.cloneRange();
+                preCaretRange.selectNodeContents(element);
+                preCaretRange.setEnd(range.endContainer, range.endOffset);
+
+                // preCaretRangeの内容を文字列として取得
+                const tempDiv = document.createElement("div");
+                tempDiv.appendChild(preCaretRange.cloneContents());
+                let htmlContent = tempDiv.innerHTML;
+
+                // 改行を適切にカウントするために変換
+                htmlContent = htmlContent.replace(/<div>/g, '<hoge>');
+                htmlContent = htmlContent.replace(/<\/div>/g, '');
+                htmlContent = htmlContent.replace(/<br>/g, '');
+                htmlContent = htmlContent.replace(/<hoge>/g, '\n');
+
+                // キャレットの位置を文字数で計算
+                caretOffset = htmlContent.length;
+            }
+            return caretOffset;
+        }
+        let CaretOnTwenty = false;
+        let CaretOnTwentyLast = false;
+        let CaretOnOne = false;
+        let CaretOnOneFirst = false;
+        document.addEventListener('selectionchange', () => {
+            if (getCaretElementId() && getCaretElementId().match(/^page-\d+$/)) {
+                let html = document.getElementById(getCaretElementId()).innerHTML;
+                let text = html.replace(/<div>/g, '<hoge>');
+                text = text.replace(/<\/div>/g, '');
+                text = text.replace(/<br>/g, '');
+                text = text.replace(/<hoge>/g, '\n');
+                txtlen = text.length;
+                text = truncateText(text, CaretPos(document.getElementById(getCaretElementId())));
+                CaretOnTwenty = false;
+                CaretOnTwentyLast = false;
+                CaretOnOne = false;
+                CaretOnOneFirst = false;
+                if (rowcnt(text) == 1) {
+                    if (text == "") {
+
+                        CaretOnOneFirst = true;
+                        CaretOnOne = true;
+                    } else {
+
+                        CaretOnOne = true;
+                    }
+                } else if (rowcnt(text) >= 20) {
+                    if (text.length == txtlen) {
+
+                        CaretOnTwentyLast = true;
+                        CaretOnTwenty = true;
+                    } else {
+
+                        CaretOnTwenty = true;
+                    }
+                }
+
+            }
+        });
+        function getCaretElementId() {
+            const activeElement = document.activeElement;
+            const selection = window.getSelection();
+
+            if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                const commonAncestor = range.commonAncestorContainer;
+
+                if (activeElement.contains(commonAncestor)) {
+                    return activeElement.id;
+                }
+            }
+            return null;
+        }
+        function truncateText(text, maxLength) {
+            if (text.length > maxLength) {
+                return text.substring(0, maxLength);
+            }
+            return text;
+        }
+        function lineget(text) {
+            const lines = text.split(/\r\n|\r|\n/);
+            return lines.length;
+        }
+    </script>
+</body>
+
+</html>
+<!--
+
+コピーボタン
+
+チャットGPTテンプレ作成ボタン
+
+削除ボタン
+
+-->
