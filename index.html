@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>忙しい人のための作文エディター</title>
+    <meta name="description" content="忙しい人のための作文エディターです チャットGPTを使って簡単に作文を作成できます">
+    <meta name="keywords" content="キーワード1, キーワード2, キーワード3">
+    <meta name="author" content="あなたの名前">
+
+    <meta property="og:title" content="忙しい人のための作文エディター">
+    <meta property="og:description" content="あなたのウェブサイトの説明文">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://あなたのウェブサイトのURL">
+    <meta property="og:image" content="https://あなたのウェブサイトの画像URL">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@あなたのTwitterアカウント">
+    <meta name="twitter:creator" content="@あなたのTwitterアカウント">
+    <meta name="twitter:title" content="忙しい人のための作文エディター">
+    <meta name="twitter:description" content="あなたのウェブサイトの説明文">
+    <meta name="twitter:image" content="https://あなたのウェブサイトの画像URL">
+
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='rgb(79, 139, 194)' /></svg>">
+
+</head>
+
+<body id="BG"
+    style="display: flex;justify-content: center;align-items: center;height: 100vh;overflow: hidden;font-family: 'Noto Sans JP', sans-serif;">
+    <style>
+        /*読み込み時アニメーション*/
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgb(79, 139, 194);
+            /* 水色 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            /* 他の要素の上に表示 */
+        }
+
+        .animated-text::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background-color: white;
+            width: 0%;
+            animation: fill 2s forwards;
+        }
+
+        @keyframes fill {
+            100% {
+                width: 100%;
+            }
+        }
+
+        .loading-screen.loaded {
+            animation: fadeOut 1s forwards;
+        }
+
+        @keyframes fadeOut {
+            100% {
+                opacity: 0;
+            }
+        }
+
+        /*背景#f5f5f5*/
+        #BG {
+            background-color: #f5f5f5;
+        }
+
+        /*ヘッダー*/
+        #header {
+            display: flex;
+            position: absolute;
+            top: -8vh;
+            width: 100vw;
+            height: 8vh;
+            background-color: #4f8bc2;
+            z-index: 5;
+            box-shadow: 0px 0px 40px 0px rgba(79, 139, 194, 0.2);
+            align-items: center;
+            animation: slideDown 0.7s ease forwards;
+        }
+
+        @keyframes slideDown {
+            from {
+                top: -8vh;
+            }
+
+            to {
+                top: 0;
+            }
+        }
+
+        /*編集オブジェクト*/
+        #draggable {
+            position: fixed;
+            transform-origin: left top;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .txtpage {
+            width: 874px;
+            height: 1240px;
+            background-color: #FFFFFF;
+            border-radius: 40px;
+            margin: 40px;
+            box-shadow: 0px 0px 40px 0px rgba(79, 139, 194, 0.2);
+            justify-content: center;
+            align-items: center;
+            display: flex;
+        }
+
+        .editabletxt {
+            font-family: 'HG明朝B', 'BIZ UD明朝 Medium', monospace;
+            width: 100%;
+            height: 94%;
+            margin: 40px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-size: 24px;
+            outline: none;
+            letter-spacing: 15px;
+            line-height: 2.4;
+            background: repeating-linear-gradient(to bottom,
+                    transparent,
+                    transparent calc(2.4em - 1px),
+                    rgba(0, 0, 0, 0.5) calc(2.4em - 1px),
+                    rgba(0, 0, 0, 0.5) 2.4em);
+        }
+
+        /*文字数列数カウンター*/
+        #counterpanel {
+
+            background-color: #4f8bc2;
+            position: absolute;
+            animation: slideInCnt 0.7s ease forwards;
+            top: 12vh;
+            box-shadow: 0px 0px 40px 0px rgba(10, 10, 10, 0.2);
+            border-radius: 0 1em 1em 0;
+            left: -5vw;
+        }
+
+        @keyframes slideInCnt {
+            from {
+                left: -5vw;
+            }
+
+            to {
+                left: 0;
+            }
+        }
+
+        /*ツールパネル*/
+        #toolpanel {
+            width: 6em;
+            height: 36vh;
+            position: absolute;
+            border-radius: 10em;
+            left: -5vw;
+            z-index: 4;
+            background-color: #4f8bc2;
+            box-shadow: 0px 0px 40px 0px rgba(79, 139, 194, 0.2);
+            text-align: center;
+            animation: slideInLeft 0.7s ease forwards;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                left: -5vw;
+            }
+
+            to {
+                left: 2vw;
+            }
+        }
+
+        .toolbutton {
+            margin: 0.3em;
+            border-radius: 50%;
+            width: 5em;
+            height: 5em;
+            background-color: rgb(255, 255, 255);
+            border: none;
+            box-shadow: 0px 0px 20px 0px rgba(79, 139, 194, 0.1);
+        }
+
+        #notification {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background-color: #4f8bc2;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        #notification.show {
+            opacity: 1;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #aipanel {
+            display: none;
+            position: relative;
+            width: 30vw;
+            height: 40vh;
+            z-index: 7;
+            background-color: #4f8bc2;
+            border-radius: 2em;
+            color: #FFF;
+        }
+
+        #aiexit {
+            top: 50%;
+            bottom: 50%;
+            left: 90%;
+            float: right;
+            font-size: 20px;
+            border: none;
+            background-color: #4f8bc2;
+            color: #FFF;
+        }
+
+        #generatebutton {
+            width: 4em;
+            height: 4em;
+            right: 2em;
+            bottom: 2em;
+            position: absolute;
+            border: none;
+            border-radius: 2em;
+            background-color: #FFF;
+            color: #4f8bc2;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .loader {
+            border: 16px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 16px solid #4f8bc2;
+            width: 120px;
+            height: 120px;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /*レスポンスパネル*/
+        #responsepanel {
+            width: 20vw;
+            height: 54vh;
+            position: absolute;
+            border-radius: 3em;
+            background-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0px 0px 40px 0px rgba(79, 139, 194, 0.2);
+            right: 2vw;
+            transform-origin: left top;
+            z-index: 4;
+            overflow: auto;
+            animation: slideInRight 0.7s ease forwards;
+        }
+
+        @keyframes slideInRight {
+            from {
+                right: -5vw;
+            }
+
+            to {
+                right: 2vw;
+            }
+        }
+
+        /*チャットパネル*/
+        #chatpanel {
+            width: 50vw;
+            position: absolute;
+            bottom: -8vh;
+            z-index: 5;
+            background-color: #4f8bc2;
+            box-shadow: 0px 0px 40px 0px rgba(79, 139, 194, 0.2);
+            border-radius: 2em 2em 0 0;
+            padding: 1em;
+            animation: slideUp 0.7s ease forwards;
+        }
+
+        @keyframes slideUp {
+            from {
+                bottom: -8vh;
+            }
+
+            to {
+                bottom: 0;
+            }
+        }
+
+        .chat-input-container {
+            display: flex;
+            align-items: center;
+            background-color: #FFF;
+            border-radius: 2em;
+            padding: 0.5em;
+            width: calc(100% - 2em);
+            /* 左右の余白を考慮 */
+            margin: 0 auto;
+            /* 中央に配置 */
+        }
+
+        #sendtxt {
+            flex-grow: 1;
+            padding: 0.5em;
+            border: none;
+            outline: none;
+            border-radius: 2em;
+            background-color: #FFF;
+            resize: none;
+            overflow: auto;
+            max-height: 150px;
+        }
+
+        #sendbutton {
+            margin-left: 1em;
+            border-radius: 50%;
+            width: 3em;
+            height: 3em;
+            background-color: #ffffff;
+            border: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+        }
+
+        /*その他*/
+        ::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+    <!--読み込み画面-->
+    <div class="loading-screen">
+        <h1 class="animated-text" style="color:#FFF;font-size:3vw;letter-spacing: 1vw;">忙しい人のための作文エディター</h1>
+    </div>
+    <!--ヘッダー-->
+    <header id="header">
+        <h1 style="font-size:2em;color:#FFF;padding-left:1.5em;white-space: nowrap;">忙しい人のための作文エディター</h1>
+    </header>
+
+    <!--編集オブジェクト-->
+    <div id="container">
+        <div id="draggable">
+            <div class="txtpage" id="txtpage-1">
+                <div class="editabletxt" contenteditable="true" id="page-1"></div>
+            </div>
+        </div>
+    </div>
+    <!--文字数行数カウンター-->
+    <div id="counterpanel">
+        <div style="background-color:#FFF;margin:1em;border-radius:1em">
+            <div style="margin:1em;">
+                文字数 <span id="charcnt">0</span> 行数 <span id="rowcnt">0</span>
+            </div>
+        </div>
+    </div>
+    <!--ツールパネル-->
+    <div id="toolpanel">
+        <div style="position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);">
+            <button class="toolbutton" id="copybutton" onclick="copybutton()" title="テキストをクリップボードにコピー"><svg
+                    version="1.1" id="_x32_" xmlns="http://www.w3.org/2000/svg"
+                    xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 512 512"
+                    style="width: 40px; height: 40px; opacity: 1;" xml:space="preserve">
+                    <style type="text/css">
+                        .st0 {
+                            fill: #4B4B4B;
+                        }
+                    </style>
+                    <g>
+                        <rect x="115.774" y="335.487" class="st0" width="194.387" height="18.588"
+                            style="fill: rgb(79, 139, 194);"></rect>
+                        <rect x="115.774" y="260.208" class="st0" width="194.387" height="18.527"
+                            style="fill: rgb(79, 139, 194);"></rect>
+                        <rect x="115.774" y="184.862" class="st0" width="194.387" height="18.588"
+                            style="fill: rgb(79, 139, 194);"></rect>
+                        <rect x="218.582" y="109.576" class="st0" width="91.58" height="18.588"
+                            style="fill: rgb(79, 139, 194);"></rect>
+                        <path class="st0" d="M385.112,396.188V39.614c0-2.294-0.197-4.603-0.592-6.768C381.3,14.19,365.006,0,345.438,0H184.686
+                        c-11.561,0-22.598,4.603-30.741,12.747L53.637,112.986c-8.151,8.22-12.747,19.249-12.747,30.818v252.384
+                        c0,21.802,17.806,39.607,39.683,39.607h264.864C367.308,435.795,385.112,417.99,385.112,396.188z M170.634,27.529v89.074
+                        c0,9.662-3.745,13.399-13.339,13.399H68.222L170.634,27.529z M63.163,396.188V149.775h106.02c3.486,0,6.768-0.85,9.655-2.362
+                        c4.079-2.036,7.361-5.324,9.328-9.328c1.519-2.894,2.302-6.115,2.302-9.526V22.272h154.97c7.156,0,13.331,4.33,15.959,10.574
+                        c0.92,2.104,1.376,4.337,1.376,6.768v356.574c0,9.518-7.748,17.342-17.335,17.342H80.574
+                        C70.98,413.53,63.163,405.706,63.163,396.188z" style="fill: rgb(79, 139, 194);"></path>
+                        <path class="st0" d="M431.488,76.205h-26.732l1.375,22.272h25.356c9.594,0,17.349,7.748,17.349,17.342v356.573
+                        c0,9.519-7.755,17.342-17.349,17.342H166.562c-7.163,0-13.339-4.406-15.968-10.581c-0.85-2.097-1.374-4.33-1.374-6.761V456.89
+                        h-22.272v15.503c0,2.294,0.198,4.589,0.593,6.761c3.22,18.588,19.515,32.846,39.022,32.846h264.926
+                        c21.877,0,39.622-17.805,39.622-39.607V115.82C471.11,93.943,453.365,76.205,431.488,76.205z"
+                            style="fill: rgb(79, 139, 194);"></path>
+                    </g>
+                </svg>
+            </button>
+            <button class="toolbutton" id="pastebutton" title="クリップボードのテキストを貼り付け" onclick="pastebutton()">
+                <svg version="1.1" id="_x32_" xmlns="http://www.w3.org/2000/svg"
+                    xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="512px" height="512px"
+                    viewBox="0 0 512 512" style="width: 40px; height: 40px; opacity: 1;" xml:space="preserve">
+                    <style type="text/css">
+                        .st0 {
+                            fill: #4B4B4B;
+                        }
+                    </style>
+                    <g>
+                        <path class="st0" d="M449.891,87.953c-3.766-8.906-10.031-16.438-17.922-21.781c-7.891-5.328-17.5-8.469-27.719-8.469h-42.656
+                            v-7.359h-61.828c0.281-2,0.438-4.063,0.438-6.141C300.203,19.828,280.375,0,256,0s-44.203,19.828-44.203,44.203
+                            c0,2.078,0.156,4.141,0.438,6.141h-61.828v7.359H107.75c-6.813,0-13.359,1.391-19.281,3.906
+                            c-8.906,3.766-16.453,10.031-21.797,17.922c-5.328,7.906-8.469,17.5-8.469,27.719v355.219c0,6.781,1.391,13.344,3.906,19.281
+                            c3.766,8.906,10.031,16.438,17.922,21.781c7.906,5.344,17.5,8.469,27.719,8.469h296.5c6.797,0,13.359-1.375,19.281-3.906
+                            c8.922-3.75,16.453-10.031,21.797-17.922c5.328-7.891,8.469-17.5,8.469-27.703V107.25
+                            C453.797,100.438,452.422,93.891,449.891,87.953z M256,27.797c9.047,0,16.406,7.359,16.406,16.406c0,2.172-0.438,4.234-1.203,6.141
+                            h-30.391c-0.781-1.906-1.219-3.969-1.219-6.141C239.594,35.156,246.969,27.797,256,27.797z M424.328,462.469
+                            c0,2.813-0.563,5.406-1.578,7.797c-1.5,3.578-4.063,6.672-7.281,8.859c-3.219,2.156-7,3.406-11.219,3.406h-296.5
+                            c-2.813,0-5.422-0.563-7.813-1.563c-3.594-1.516-6.672-4.094-8.844-7.297c-2.156-3.219-3.406-7-3.422-11.203V107.25
+                            c0-2.813,0.563-5.422,1.578-7.813c1.516-3.594,4.078-6.688,7.281-8.844c3.219-2.156,7-3.406,11.219-3.422h42.656v6.141
+                            c0,11.531,9.344,20.875,20.891,20.875h169.422c11.531,0,20.875-9.344,20.875-20.875v-6.141h42.656c2.813,0,5.422,0.563,7.813,1.578
+                            c3.578,1.5,6.672,4.063,8.844,7.281s3.422,7,3.422,11.219V462.469z"
+                            style="fill: rgb(79, 139, 194);"></path>
+                        <rect x="156.141" y="170.672" class="st0" width="31.625" height="31.625"
+                            style="fill: rgb(79, 139, 194);"></rect>
+                        <rect x="225.516" y="170.672" class="st0" width="130.359" height="31.625"
+                            style="fill: rgb(79, 139, 194);"></rect>
+                        <rect x="156.141" y="264.125" class="st0" width="31.625" height="31.625"
+                            style="fill: rgb(79, 139, 194);"></rect>
+                        <rect x="225.516" y="264.125" class="st0" width="130.359" height="31.625"
+                            style="fill: rgb(79, 139, 194);"></rect>
+                        <rect x="156.141" y="357.594" class="st0" width="31.625" height="31.625"
+                            style="fill: rgb(79, 139, 194);"></rect>
+                        <rect x="225.516" y="357.594" class="st0" width="130.359" height="31.625"
+                            style="fill: rgb(79, 139, 194);"></rect>
+                    </g>
+                </svg>
+
+            </button>
+            <button class="toolbutton" id="aibutton" title="AIで文章を作成" onclick="aibutton()"><svg version="1.1" id="_x32_"
+                    xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+                    viewBox="0 0 512 512" style="width: 40px; height: 40px; opacity: 1;" xml:space="preserve">
+                    <style type="text/css">
+                        .st0 {
+                            fill: #4B4B4B;
+                        }
+                    </style>
+                    <g>
+                        <path class="st0" d="M475.609,295.505L434.2,207.72c0.111-2.619,0.206-5.246,0.206-7.904C434.406,89.476,344.938,0,234.583,0
+                        C124.212,0,34.744,89.476,34.744,199.816c0,51.503,15.221,97.959,53.488,147.153v90.769c0,6.897,4.11,13.126,10.459,15.816
+                        l184.681,57.075c5.302,2.254,11.38,1.706,16.174-1.468c4.809-3.182,7.697-8.563,7.697-14.309v-59.86
+                        c0-9.467,7.698-17.18,17.158-17.18h84.77c9.491,0,17.157-7.682,17.157-17.15v-51.606c0-6.586,3.762-12.586,9.682-15.459
+                        l31.568-15.332C476.053,314.146,479.624,304.004,475.609,295.505z M321.273,125.64c-5.285,0-10.19-1.572-14.3-4.246l-35.06,26.188
+                        c1.698,4.182,2.651,8.753,2.651,13.546c0,2.404-0.238,4.753-0.699,7.031l31.251,15.182c3.476-2.682,7.809-4.286,12.522-4.286
+                        c11.316,0,20.49,9.174,20.49,20.49c0,11.325-9.174,20.498-20.49,20.498c-11.269,0-20.394-9.087-20.49-20.324l-31.267-15.182
+                        c-6.603,7.714-16.396,12.618-27.331,12.618c-2.38,0-4.698-0.246-6.951-0.691l-12.396,25.673c4.571,4.738,7.38,11.157,7.38,18.244
+                        c0,14.53-11.777,26.307-26.3,26.307s-26.314-11.777-26.314-26.307c0-14.522,11.792-26.299,26.314-26.299
+                        c0.842,0,1.683,0.047,2.524,0.127l12.38-25.681c-6.253-5.34-10.65-12.792-12.11-21.26l-50.567-4.285
+                        c-4.444,10.42-14.761,17.72-26.807,17.72c-16.094,0-29.124-13.046-29.124-29.14c0-16.086,13.03-29.125,29.124-29.125
+                        c13.761,0,25.268,9.555,28.315,22.387l50.598,4.285c1.588-4.468,4.016-8.531,7.127-11.99l-28.505-43.092
+                        c-1.127,0.183-2.286,0.302-3.46,0.302c-12.158,0-22.014-9.856-22.014-22.022c0-12.158,9.856-22.022,22.014-22.022
+                        c12.173,0,22.029,9.864,22.029,22.022c0,4.293-1.254,8.285-3.38,11.674l28.49,43.076c3.65-1.246,7.555-1.953,11.634-1.953
+                        c8.491,0,16.284,2.96,22.442,7.881l35.061-26.188c-0.698-2.373-1.096-4.864-1.096-7.467c0-14.522,11.777-26.3,26.315-26.3
+                        c14.522,0,26.299,11.778,26.299,26.3C347.573,113.863,335.796,125.64,321.273,125.64z"
+                            style="fill: rgb(79, 139, 194);"></path>
+                    </g>
+                </svg></button>
+            <button class="toolbutton" id="deletebutton" title="全てのページをクリアする(ページを再読込します)"
+                onclick="window.location.reload();"><svg version="1.1" id="_x32_" xmlns="http://www.w3.org/2000/svg"
+                    xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 512 512"
+                    style="width: 25px; height: 25px; opacity: 1;" xml:space="preserve">
+                    <style type="text/css">
+                        .st0 {
+                            fill: #4B4B4B;
+                        }
+                    </style>
+                    <g>
+                        <polygon class="st0" points="512,52.535 459.467,0.002 256.002,203.462 52.538,0.002 0,52.535 203.47,256.005 0,459.465 
+                        52.533,511.998 256.002,308.527 459.467,511.998 512,459.475 308.536,256.005 	"
+                            style="fill: rgb(79, 139, 194);"></polygon>
+                    </g>
+                </svg></button>
+        </div>
+
+    </div>
+    <div id="notification" class="hidden">テキストをコピーしました</div>
+    <div id="aipanel">
+        <div style="margin:2em;justify-content: space-between;">
+            <button id="aiexit" onclick="aiexit()">x</button>
+            <h3>AIで文章を作成</h3>
+            <div style="display: inline-block; width:100%; ">
+                <label for="title">題名</label>
+                <input style="right:0;float:right;" id="title">
+            </div>
+            <br>
+            <div style="display: inline-block; width:100%; ">
+                <label for="format">目的</label>
+                <select id="format" style="right:0;float:right;">
+                    <option>指定なし</option>
+                    <option>感想文</option>
+                    <option>論文・説明文</option>
+                    <option>ビジネスメール</option>
+                    <option>エッセイ</option>
+                    <option>小説</option>
+                    <option>脚本</option>
+                </select>
+            </div>
+            <br>
+            <div style="display: inline-block; width:100%; ">
+                <label for="amountoftxt" style="right:0;">文章量</label>
+                <input style="right:0;float:right; width: 5.3em;" type="number"
+                    title="文字数なら100~2000 段落数なら1~20程度の数値を半角数字で入力してください" id="textamount">
+                <select id="amountoftxt" style="float:right;">
+                    <option>指定なし</option>
+                    <option>文字数</option>
+                    <option>段落数</option>
+                </select>
+            </div>
+            <br>
+            <div style="display: inline-block; width:100%; ">
+                <label for="targetread">読み手</label>
+                <select id="targetread" style="right:0;float:right;">
+                    <option>指定なし</option>
+                    <option>幼児</option>
+                    <option>小学生</option>
+                    <option>中高生</option>
+                    <option>学生</option>
+                    <option>社会人</option>
+                    <option>専門家</option>
+                    <option>教師</option>
+                </select>
+            </div>
+            <br>
+            <div style="display: inline-block; width:100%; ">
+                <label for="writer">書き手</label>
+                <select id="writer" style="right:0;float:right;">
+                    <option>設定なし</option>
+                    <option>小学生</option>
+                    <option>中高生</option>
+                    <option>学生</option>
+                    <option>社会人</option>
+                    <option>専門家</option>
+                    <option>文豪</option>
+                </select>
+            </div>
+            <br>
+            <div style="display: inline-block; width:100%; ">
+                <label>キーワード</label>
+                <input style="right:0;float:right;" title=",で単語を区切って入力" id="keywords">
+            </div>
+            <button id="generatebutton" title="文章を作成" onclick="aigenerate()"><svg version="1.1" id="_x32_"
+                    xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+                    viewBox="0 0 512 512" style="width: 40px; height: 40px; opacity: 1;" xml:space="preserve">
+                    <style type="text/css">
+                        .st0 {
+                            fill: #4B4B4B;
+                        }
+                    </style>
+                    <g>
+                        <path class="st0" d="M475.609,295.505L434.2,207.72c0.111-2.619,0.206-5.246,0.206-7.904C434.406,89.476,344.938,0,234.583,0
+                C124.212,0,34.744,89.476,34.744,199.816c0,51.503,15.221,97.959,53.488,147.153v90.769c0,6.897,4.11,13.126,10.459,15.816
+                l184.681,57.075c5.302,2.254,11.38,1.706,16.174-1.468c4.809-3.182,7.697-8.563,7.697-14.309v-59.86
+                c0-9.467,7.698-17.18,17.158-17.18h84.77c9.491,0,17.157-7.682,17.157-17.15v-51.606c0-6.586,3.762-12.586,9.682-15.459
+                l31.568-15.332C476.053,314.146,479.624,304.004,475.609,295.505z M321.273,125.64c-5.285,0-10.19-1.572-14.3-4.246l-35.06,26.188
+                c1.698,4.182,2.651,8.753,2.651,13.546c0,2.404-0.238,4.753-0.699,7.031l31.251,15.182c3.476-2.682,7.809-4.286,12.522-4.286
+                c11.316,0,20.49,9.174,20.49,20.49c0,11.325-9.174,20.498-20.49,20.498c-11.269,0-20.394-9.087-20.49-20.324l-31.267-15.182
+                c-6.603,7.714-16.396,12.618-27.331,12.618c-2.38,0-4.698-0.246-6.951-0.691l-12.396,25.673c4.571,4.738,7.38,11.157,7.38,18.244
+                c0,14.53-11.777,26.307-26.3,26.307s-26.314-11.777-26.314-26.307c0-14.522,11.792-26.299,26.314-26.299
+                c0.842,0,1.683,0.047,2.524,0.127l12.38-25.681c-6.253-5.34-10.65-12.792-12.11-21.26l-50.567-4.285
+                c-4.444,10.42-14.761,17.72-26.807,17.72c-16.094,0-29.124-13.046-29.124-29.14c0-16.086,13.03-29.125,29.124-29.125
+                c13.761,0,25.268,9.555,28.315,22.387l50.598,4.285c1.588-4.468,4.016-8.531,7.127-11.99l-28.505-43.092
+                c-1.127,0.183-2.286,0.302-3.46,0.302c-12.158,0-22.014-9.856-22.014-22.022c0-12.158,9.856-22.022,22.014-22.022
+                c12.173,0,22.029,9.864,22.029,22.022c0,4.293-1.254,8.285-3.38,11.674l28.49,43.076c3.65-1.246,7.555-1.953,11.634-1.953
+                c8.491,0,16.284,2.96,22.442,7.881l35.061-26.188c-0.698-2.373-1.096-4.864-1.096-7.467c0-14.522,11.777-26.3,26.315-26.3
+                c14.522,0,26.299,11.778,26.299,26.3C347.573,113.863,335.796,125.64,321.273,125.64z"
+                            style="fill: rgb(79, 139, 194);"></path>
+                    </g>
+                </svg></button>
+        </div>
+    </div>
+    <div id="aiBG" onclick="aiexit()"
+        style="background-color: rgba(0, 0, 0, 0.2);display:none;width:100%;height:100%;position:absolute;z-index:6;top:0;">
+    </div>
+
+
+    <!--レスポンスパネルー-->
+    <div id="responsepanel">
+        <div style="margin:2em;white-space: pre-wrap;" id="responsetxt"></div>
+    </div>
+
+    <!--チャットパネル-->
+    <div id="chatpanel">
+        <div class="chat-input-container">
+            <div contenteditable="true" id="sendtxt"></div>
+            <button id="sendbutton" onclick="sendbutton()"><svg version="1.1" id="_x32_"
+                    xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+                    viewBox="0 0 512 512" style="width: 38px; height: 38px; opacity: 1;left:0; " xml:space="preserve">
+                    <style type="text/css">
+                        .st0 {
+                            fill: #4B4B4B;
+                        }
+                    </style>
+                    <g>
+                        <polygon class="st0" points="121.71,463.73 211.257,394.524 121.71,333.638 	"
+                            style="fill: rgb(79, 139, 194);"></polygon>
+                        <polygon class="st0"
+                            points="0,216.127 122.938,305.26 465.837,86.043 152.628,326.791 335.73,459.532 512,48.27 	"
+                            style="fill: rgb(79, 139, 194);"></polygon>
+                    </g>
+                </svg></button>
+        </div>
+    </div>
+
+    <!--読み込みオーバーレイ-->
+    <div class="overlay" id="overlay">
+        <div class="loader"></div>
+    </div>
+
+
+    <script>
+        /*オブジェクトドラッグ 拡大縮小 読み込み時アニメーション*/
+        window.onload = function () {
+            document.querySelector('.loading-screen').classList.add('loaded');
+            addevent("page-1");
+
+            setTimeout(() => {
+                document.querySelector('.loading-screen').style.display = "none";
+            }, 1000);
+        };
+        window.addEventListener('load', () => {
+
+            let waitkey = false;
+            const validInputRegex = /^[a-zA-Z0-9-_]{20,}$/;
+            do {
+                API_KEY = prompt('APIキーを入力してください:');
+                if (validInputRegex.test(API_KEY)) {
+                    waitkey = true;
+                } else {
+                    alert('無効なAPIキーが入力されました');
+                }
+            } while (!waitkey);
+        });
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('container');
+            window.addEventListener('resize', () => {
+                container.style.width = window.innerWidth + 'px';
+                container.style.height = window.innerHeight + 'px';
+            });
+        });
+        const draggable = document.getElementById('draggable');
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        const draggableWidth = draggable.offsetWidth;
+        const draggableHeight = draggable.offsetHeight;
+        const leftPos = (windowWidth - draggableWidth) / 2;
+        const topPos = (windowHeight - draggableHeight) / 2;
+
+        let scale = windowWidth / 1800;
+        draggable.style.left = (leftPos - (160 * scale)) + 'px';
+        draggable.style.top = (topPos + (320 * scale)) + 'px';
+        draggable.style.transform = `scale(${scale})`;
+
+        let isDragging = false;
+        let offsetX, offsetY;
+        let isSpacePressed = false;
+        let responsemouse = false;
+        let aipanelopen = false;
+        document.getElementById("responsetxt").addEventListener('mouseover', () => {
+            responsemouse = true;
+        });
+        document.getElementById("responsetxt").addEventListener('mouseout', () => {
+            responsemouse = false;
+        });
+
+        draggable.addEventListener('mousedown', (event) => {
+            if (event.button === 1 || isSpacePressed) {
+                isDragging = true;
+                offsetX = event.clientX - draggable.getBoundingClientRect().left;
+                offsetY = event.clientY - draggable.getBoundingClientRect().top;
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                isSpacePressed = true;
+            }
+        });
+
+        document.addEventListener('keyup', (event) => {
+            if (event.code === 'Space') {
+                isSpacePressed = false;
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            draggable.style.cursor = 'text';
+        });
+
+        document.addEventListener('mousemove', (event) => {
+            if (isDragging) {
+                draggable.style.cursor = 'grabbing';
+                draggable.style.left = event.clientX - offsetX + 'px';
+                draggable.style.top = event.clientY - offsetY + 'px';
+            }
+        });
+
+        window.addEventListener('wheel', (event) => {
+            if (event.ctrlKey) {
+                event.preventDefault();
+                scale += event.deltaY < 0 ? 0.1 : -0.1;
+                scale = Math.max(scale, 0.1);
+                scale = Math.min(scale, 30);
+
+                draggable.style.transform = `scale(${scale})`;
+            } else if (event.shiftKey) {
+                event.preventDefault();
+                let currentLeft = parseInt(draggable.style.left, 10) || 0;
+                draggable.style.left = (currentLeft + event.deltaY) + 'px';
+            } else if (responsemouse) {
+            } else {
+                if (!aipanelopen) {
+                    event.preventDefault();
+                    let currentTop = parseInt(draggable.style.top, 10) || 0;
+                    draggable.style.top = (currentTop - event.deltaY) + 'px';
+                }
+            }
+        }, { passive: false });
+
+
+
+        /*チャット・レスポンス*/
+        let API_KEY = '';
+        const API_URL = 'https://api.openai.com/v1/chat/completions';
+
+        async function gptresponse(question) {
+            const userInput = question;
+            let res = "";
+            const messages = [
+                { role: "system", content: "あなたは日本語の文章作成を手助けするアシスタントです。正確で自然な日本語を使い、わかりやすく伝わる文章を提案してください。あなたは裏方のシステムを担います。命令に忠実に従ってください" },
+                { role: "user", content: userInput }
+            ];
+            document.getElementById("overlay").style.display = "flex";
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-3.5-turbo",
+                        messages: messages
+                    })
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (!data.choices || data.choices.length === 0) {
+                    throw new Error('No choices returned in the response');
+                }
+                res = data.choices[0].message.content;
+            } catch (error) {
+                console.error('Error:', error);
+                res = `Error occurred: ${error.message}`;
+            } finally {
+                document.getElementById("overlay").style.display = "none";
+            }
+            return res;
+        }
+        async function sendbutton() {
+            let question = document.getElementById("sendtxt").innerHTML;
+            let text = ConvertText();
+            question = question.replace(/<div>/g, '<hoge>');
+            question = question.replace(/<\/div>/g, '');
+            question = question.replace(/<br>/g, '');
+            question = question.replace(/<hoge>/g, '\n');
+            document.getElementById("sendtxt").innerHTML = "";
+            questiontxt = "以下の'指示:''文章:'に続く物が指示と文章です。指示どおりに文章を改変し、改変した文章とその説明をそれぞれ必ず'文章:''説明:'というテキストの後に続けて出力してください。\n\n指示:" + question + "\n\n文章:" + text + "\n念の為もう一度いいます。改変した文章とその説明をそれぞれ必ず「文章:」「説明:」というテキストの後に続けて出力してください。";
+            let response = await gptresponse(questiontxt);
+            console.log("response:\n" + response);
+            const regex = /文章: (.*?)\n説明:(.*)/s;
+            const match = response.match(regex);
+            if (match) {
+                const sentence = match[1];
+                const explanation = match[2];
+                const pagetxt = pagesplit(sentence);
+                splitdisplay(pagetxt);
+                responsedisplay(explanation);
+            } else {
+                responsedisplay("レスポンスの作成に失敗しました");
+            }
+
+        }
+        function chatsend(chattxt) {
+            return chattxt;
+        }
+        function responsedisplay(text) {
+            document.getElementById("responsetxt").innerHTML = text;
+        }
+        document.getElementById('sendtxt').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                if (event.shiftKey) {
+                    const selection = window.getSelection();
+                    const range = selection.getRangeAt(0);
+                    const br = document.createElement("br");
+                    range.deleteContents();
+                    range.insertNode
+                        (br);
+                    range.collapse(false);
+                } else {
+                    event.preventDefault();
+                    sendbutton();
+                }
+            }
+        });
+        document.getElementById('sendbutton').addEventListener('mouseover', () => {
+            document.getElementById('sendbutton').style.backgroundColor = "#f0f0f0";
+        });
+
+        document.getElementById('sendbutton').addEventListener('mouseout', () => {
+            document.getElementById('sendbutton').style.backgroundColor = "initial";
+        });
+
+        /*編集オブジェクト*/
+        let charCount = 0;
+        let rowCount = 1;
+        let pageCount = 1;
+        function charcnt(text) {
+            text = text.replace(/\r\n|\r|\n/g, '');
+            return text.length;
+        }
+        function rowcnt(text) {
+            const lines = text.split("\n");
+            let linecount = 0;
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i];
+                if (line.length == 0) {
+                    linecount++;
+                } else {
+                    linecount += Math.ceil(line.length / 20);
+                }
+            }
+            return linecount;
+        }
+        function counterdisplay(char, row) {
+            document.getElementById("charcnt").innerText = char;
+            document.getElementById("rowcnt").innerText = row;
+        }
+        function updatepagecount() {
+            let counttmp = 0;
+            for (let i = 0; i < rowCount; i++) {
+                if ((i % 20) == 0) {
+                    counttmp++;
+                }
+            }
+            pageCount = counttmp;
+        }
+        let isComposing = false;
+
+        function addevent(id) {
+            document.getElementById(id).addEventListener('input', () => {
+                setTimeout(() => {
+                    sourcetxt = ConvertText();
+                    charCount = charcnt(sourcetxt);
+                    rowCount = rowcnt(sourcetxt);
+                    counterdisplay(charCount, rowCount);
+                }, "100");
+
+            });
+            document.getElementById(id).addEventListener('compositionstart', () => {
+
+            });
+            document.getElementById(id).addEventListener('compositionupdate', () => {
+            });
+            document.getElementById(id).addEventListener('compositionend', () => {
+                setTimeout(() => {
+                    sourcetxt = ConvertText();
+                    charCount = charcnt(sourcetxt);
+                    rowCount = rowcnt(sourcetxt);
+                    counterdisplay(charCount, rowCount);
+                    let pageCountsave = pageCount;
+                    updatepagecount();
+                    if (pageCountsave != pageCount) {
+                        Pageupdate();
+                    }
+                    const pagetxt = pagesplit(sourcetxt);
+                    splitdisplay(pagetxt);
+                }, "200");
+            });
+            document.getElementById(id).addEventListener('paste', () => {
+                setTimeout(() => {
+                    sourcetxt = ConvertText();
+                    charCount = charcnt(sourcetxt);
+                    rowCount = rowcnt(sourcetxt);
+                    counterdisplay(charCount, rowCount);
+                    let pageCountsave = pageCount;
+                    updatepagecount();
+                    if (pageCountsave != pageCount) {
+                        Pageupdate();
+                    }
+                    const pagetxt = pagesplit(sourcetxt);
+                    splitdisplay(pagetxt);
+                }, "200");
+            });
+
+            let idtxt = id;
+            idtxt = idtxt.replace(/page-/g, '');
+            idtxt = Number(idtxt);
+            document.getElementById(id).addEventListener('keydown', () => {
+                switch (event.key) {
+                    case 'ArrowUp':
+                        if (CaretOnOne) {
+                            event.preventDefault();
+                            if (idtxt > 1) {
+                                element = document.getElementById("page-" + (idtxt - 1));
+                                element.focus();
+                                const range = document.createRange();
+                                range.selectNodeContents(element);
+                                range.collapse(false);
+                                const selection = window.getSelection();
+                                selection.removeAllRanges();
+                                selection.addRange(range);
+                            }
+                        }
+                        break;
+                    case 'ArrowDown':
+                        if (CaretOnTwenty) {
+                            event.preventDefault();
+                            if (idtxt < pageCount) {
+                                element = document.getElementById("page-" + (idtxt + 1));
+                                element.focus();
+                            }
+                        }
+                        break;
+                    case 'ArrowLeft':
+                        if (CaretOnOneFirst) {
+                            event.preventDefault();
+                            if (idtxt > 1) {
+                                element = document.getElementById("page-" + (idtxt - 1));
+                                element.focus();
+                                const range = document.createRange();
+                                range.selectNodeContents(element);
+                                range.collapse(false);
+                                const selection = window.getSelection();
+                                selection.removeAllRanges();
+                                selection.addRange(range);
+                            }
+                        }
+                        break;
+                    case 'ArrowRight':
+                        if (CaretOnTwentyLast) {
+                            event.preventDefault();
+                            if (idtxt < pageCount) {
+                                element = document.getElementById("page-" + (idtxt + 1));
+                                element.focus();
+                            }
+                        }
+                        break;
+                    case 'Enter':
+                        if (CaretOnTwenty) {
+                            if (idtxt < pageCount) {
+                                event.preventDefault();
+                                setTimeout(() => {
+                                    if (idtxt < pageCount) {
+                                        element = document.getElementById("page-" + (idtxt + 1));
+                                        element.focus();
+                                    }
+
+                                }, "100");
+
+                            } else {
+                                setTimeout(() => {
+                                    if (idtxt < pageCount) {
+                                        element = document.getElementById("page-" + (idtxt + 1));
+                                        element.focus();
+                                    }
+
+                                }, "100");
+                            }
+                        }
+                        break;
+                    case 'Backspace':
+                        if (CaretOnOneFirst) {
+
+                        }
+                        break;
+                    default:
+                        break;
+                }
+
+            });
+        }
+        function pagesplit(text) {
+            let cnt = 0;
+            let linecount = 0;
+            let pagetxt = "";
+            const texts = [];
+            for (let i = 0; i < text.length; i++) {
+                pagetxt += text[i];
+                if (text[i] == "\n" || cnt >= 19) {
+                    linecount++;
+                    cnt = 0;
+                    if (linecount >= 20) {
+                        texts.push(pagetxt);
+                        pagetxt = "";
+                        linecount = 0;
+                    }
+                } else {
+                    cnt++;
+                }
+            }
+            if (pagetxt.length > 0) {
+                texts.push(pagetxt);
+            }
+            return texts;
+        }
+        function splitdisplay(texts) {
+            SaveCaretLine = caretLine;
+            SaveCaretColumn = caretColumn;
+            let html = "";
+            let htmls = [];
+            for (let i = 0; i < texts.length; i++) {
+                const lines = texts[i].split("\n");
+                if (lines[0] == "") {
+                    html += "<br>";
+                } else {
+                    html += lines[0];
+                }
+                for (let j = 1; j < lines.length; j++) {
+                    if (lines[j] == "") {
+                        html += "<div>" + "<br>" + "</div>";
+                    } else {
+                        html += "<div>" + lines[j] + "</div>";
+                    }
+                }
+                const element = document.getElementById("page-" + (i + 1));
+                if (element) {
+                    element.innerHTML = html;
+                } else {
+                    console.error("Element with ID page-" + (i + 1) + " not found.");
+                }
+                html = "";
+            }
+
+            const childIndex = caretdivline - 1;
+            focuselm = document.getElementById("page-" + (Math.floor(SaveCaretLine / 20) + 1));
+            focuselm.focus();
+
+            const selection = window.getSelection();
+            const range = document.createRange();
+
+            const childNode = (caretdivline === 1) ? focuselm.firstChild : focuselm.childNodes[childIndex];
+
+            function getTextNodes(node) {
+                let textNodes = [];
+                if (node.nodeType === Node.TEXT_NODE) {
+                    textNodes.push(node);
+                } else {
+                    node.childNodes.forEach(child => {
+                        textNodes = textNodes.concat(getTextNodes(child));
+                    });
+                }
+                return textNodes;
+            }
+
+            if (childNode) {
+                const textNodes = getTextNodes(childNode);
+                if (textNodes.length > 0) {
+                    const firstTextNode = textNodes[0];
+                    const offset = caretColumn;
+                    const validOffset = Math.min(offset, firstTextNode.textContent.length);
+                    range.setStart(firstTextNode, validOffset);
+                    range.setEnd(firstTextNode, validOffset);
+
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                } else {
+                    console.error('No text node found in the specified child node.');
+                }
+            } else {
+                //console.error('Specified child node does not exist.');
+            }
+
+
+        }
+
+        function ConvertText() {
+            let html = document.getElementById("page-1").innerHTML;
+            if (pageCount > 1) {
+                for (let i = 1; i < pageCount; i++) {
+                    //console.log("page-" + i);
+                    html += document.getElementById("page-" + (i + 1)).innerHTML;
+                }
+            }
+            let text = html.replace(/<div>/g, '<hoge>');
+            text = text.replace(/<\/div>/g, '');
+            text = text.replace(/<br>/g, '');
+            text = text.replace(/<hoge>/g, '\n');
+
+            return text;
+        }
+        function Pageupdate() {
+            if (pageCount == 1) {
+                for (let i = 2; i <= 5; i++) {
+                    removePage(i);
+                }
+            } else {
+                for (let i = 2; i <= pageCount + 1; i++) {
+
+                    removePage(i);
+                }
+                for (let i = 2; i <= pageCount; i++) {
+                    createPage(i);
+                }
+            }
+        }
+        function createPage(pageNum) {
+            let Pagecontainer = document.createElement('div');
+            Pagecontainer.classList.add('txtpage');
+            Pagecontainer.id = "txtpage-" + pageNum;
+            document.getElementById('draggable').appendChild(Pagecontainer);
+            let newPage = document.createElement('div');
+            newPage.classList.add('editabletxt');
+            newPage.contentEditable = true;
+            newPage.id = "page-" + pageNum;
+            document.getElementById(Pagecontainer.id).appendChild(newPage);
+            addevent(newPage.id);
+        }
+
+        function removePage(pageNum) {
+            const page = document.getElementById("txtpage-" + pageNum);
+            if (page) {
+                page.remove();
+            } else {
+                //page.error("要素が見つかりません: " + "txtpage-" + pageNum);
+            }
+        }
+        function CaretPos(element) {
+            let caretOffset = 0;
+            const doc = element.ownerDocument || element.document;
+            const win = doc.defaultView || doc.parentWindow;
+            const sel = win.getSelection();
+
+            if (sel.rangeCount > 0) {
+                const range = sel.getRangeAt(0);
+                const preCaretRange = range.cloneRange();
+                preCaretRange.selectNodeContents(element);
+                preCaretRange.setEnd(range.endContainer, range.endOffset);
+
+                // preCaretRangeの内容を文字列として取得
+                const tempDiv = document.createElement("div");
+                tempDiv.appendChild(preCaretRange.cloneContents());
+                let htmlContent = tempDiv.innerHTML;
+
+                // 改行を適切にカウントするために変換
+                htmlContent = htmlContent.replace(/<div>/g, '<hoge>');
+                htmlContent = htmlContent.replace(/<\/div>/g, '');
+                htmlContent = htmlContent.replace(/<br>/g, '');
+                htmlContent = htmlContent.replace(/<hoge>/g, '\n');
+
+                // キャレットの位置を文字数で計算
+                caretOffset = htmlContent.length;
+            }
+            return caretOffset;
+        }
+        let CaretOnTwenty = false;
+        let CaretOnTwentyLast = false;
+        let CaretOnOne = false;
+        let CaretOnOneFirst = false;
+
+        let caretLine = 0;
+        let caretdivline = 0;
+        let caretColumn = 0;
+
+        document.addEventListener('selectionchange', () => {
+            if (getCaretElementId() && getCaretElementId().match(/^page-\d+$/)) {
+                let html = document.getElementById(getCaretElementId()).innerHTML;
+                let text = html.replace(/<div>/g, '<hoge>');
+                text = text.replace(/<\/div>/g, '');
+                text = text.replace(/<br>/g, '');
+                text = text.replace(/<hoge>/g, '\n');
+                txtlen = text.length;
+                text = truncateText(text, CaretPos(document.getElementById(getCaretElementId())));
+                CaretOnTwenty = false;
+                CaretOnTwentyLast = false;
+                CaretOnOne = false;
+                CaretOnOneFirst = false;
+                if (rowcnt(text) == 1) {
+                    if (text == "") {
+
+                        CaretOnOneFirst = true;
+                        CaretOnOne = true;
+                    } else {
+
+                        CaretOnOne = true;
+                    }
+                } else if (rowcnt(text) >= 20) {
+                    if (text.length == txtlen) {
+
+                        CaretOnTwentyLast = true;
+                        CaretOnTwenty = true;
+                    } else {
+
+                        CaretOnTwenty = true;
+                    }
+                }
+                const id = getCaretElementId();
+                const numberPart = id.split("page-")[1];
+                const pageNumber = parseInt(numberPart, 10);
+                caretLine = rowcnt(text) + (20 * (pageNumber - 1));
+                caretdivline = divlinecount(text);
+                caretColumn = ToCaretColumn(text);
+            }
+        });
+        function getCaretElementId() {
+            const activeElement = document.activeElement;
+            const selection = window.getSelection();
+
+            if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                const commonAncestor = range.commonAncestorContainer;
+
+                if (activeElement.contains(commonAncestor)) {
+                    return activeElement.id;
+                }
+            }
+            return null;
+        }
+        function truncateText(text, maxLength) {
+            if (text.length > maxLength) {
+                return text.substring(0, maxLength);
+            }
+            return text;
+        }
+        function ToCaretColumn(text) {
+            let cnt = 0;
+            let pagetxt = "";
+            for (let i = 0; i < text.length; i++) {
+                pagetxt += text[i];
+                if (text[i] == "\n") {
+                    cnt = 0;
+                    pagetxt = "";
+                } else {
+                    cnt++;
+                }
+            }
+            return pagetxt.length;
+        }
+        function divlinecount(text) {
+            const lines = text.split("\n");
+            return lines.length;
+        }
+
+        /*ツールパネル*/
+        function copybutton() {
+            const textToCopy = ConvertText();
+            navigator.clipboard.writeText(textToCopy).then(() => {
+
+                const notification = document.getElementById('notification');
+                notification.classList.remove('hidden');
+                notification.classList.add('show');
+
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    notification.classList.add('hidden');
+                }, 3000);
+            }).catch(err => {
+                console.error('コピー中にエラーが発生しました:', err);
+            });
+        }
+        function pastebutton() {
+            navigator.clipboard.readText().then(text => {
+                const textToInsert = text;
+                const editable = document.getElementById(getCaretElementId());
+
+                const selection = window.getSelection();
+                const range = selection.getRangeAt(0);
+
+                const textNode = document.createTextNode(textToInsert);
+
+                range.deleteContents();
+                range.insertNode(textNode);
+
+                range.setStartAfter(textNode);
+                range.setEndAfter(textNode);
+
+                selection.removeAllRanges();
+                selection.addRange(range);
+
+                editable.focus();
+            }).catch(err => {
+            });
+        }
+        function aibutton() {
+            document.getElementById("aipanel").style.display = "block";
+            document.getElementById('aiBG').style.display = "block";
+            aipanelopen = true;
+        }
+        function aiexit() {
+            document.getElementById("aipanel").style.display = "none";
+            document.getElementById('aiBG').style.display = "none";
+            aipanelopen = false;
+        }
+        async function aigenerate() {
+            questiontxt = "以下の条件に従って文章を作成してください\nタイトルの記述や箇条書きは使わず、必ず本文のみを出力してください。本文は改行を含みます。\n";
+            title = document.getElementById("title").value;
+            if (title == "") {
+                questiontxt += "文のタイトル:指定なし\n";
+            } else {
+                questiontxt += ("文のタイトル:" + title + "\n");
+            }
+            textformat = document.getElementById("format").value;
+            questiontxt += ("文章のフォーマット・目的:" + textformat + "\n");
+            amountoftxt = document.getElementById("amountoftxt").value;
+            textamount = document.getElementById("textamount").value;
+            if (amountoftxt == "指定なし") {
+                questiontxt += ("文章量:指定なし\n");
+            } else {
+                questiontxt += ("文章量:" + amountoftxt + " " + textamount + " 程度\n");
+            }
+            targetread = document.getElementById("targetread").value;
+            questiontxt += ("読み手:" + targetread + "\n");
+            writer = document.getElementById("writer").value;
+            questiontxt += ("書き手:" + writer + "\n");
+            keywords = document.getElementById("keywords").value;
+            questiontxt += ("キーワード:" + keywords + "\n");
+            let response = await gptresponse(questiontxt);
+            console.log(response);
+            charCount = charcnt(response);
+            rowCount = rowcnt(response);
+            counterdisplay(charCount, rowCount);
+            let pageCountsave = pageCount;
+            updatepagecount();
+            if (pageCountsave != pageCount) {
+                Pageupdate();
+            }
+            const pagetxt = pagesplit(response);
+            splitdisplay(pagetxt);
+            document.getElementById("aipanel").style.display = "none";
+            document.getElementById('aiBG').style.display = "none";
+            aipanelopen = false;
+        }
+
+    </script>
+</body>
+
+</html>
